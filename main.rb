@@ -2,11 +2,21 @@
 require 'octokit'
 # PRETTY PRINT OUTPUT IN TABLE
 require 'terminal-table'
+require 'uri'
 
 
 def take_input
     puts "Please enter the github repo url"
     gets.chomp
+end
+
+def parse_input_uri url
+    begin
+        uri = URI.parse url
+        uri.host ? uri.path[1..-1] : uri.path
+    rescue Exception => exec
+        puts "Invalid URL"
+    end
 end
 # Util functions added to core module needed later for calculating time diff
 class Fixnum
@@ -25,7 +35,7 @@ end
 class RepoStat
     def initialize
         @octokit_client = Octokit::Client.new
-        @repo_url = take_input
+        @repo_url = parse_input_uri(take_input)
         @total_open_issues = 0
         @issues_opened_in_last_24_hours = 0
         @issues_opened_between_7days_24hours = 0
@@ -34,7 +44,7 @@ class RepoStat
     end
 
     def store_results
-        open_issues,num_pages,last_page_count = fetch_issues
+        open_issues,num_pages,last_page_count = fetch_issues_arr
         @total_open_issues = calc_total_open_issue_count num_pages,last_page_count
         issues_opened_in_last_7days = open_issues.select {|issue| issue.created_at >= 7.days.ago }.count
         @issues_opened_before_7days = @total_open_issues - issues_opened_in_last_7days 
@@ -59,7 +69,7 @@ class RepoStat
         (num_pages-1)*@page_size + last_page_count
     end
 
-    def fetch_issues
+    def fetch_issues_arr
         open_issues_arr = []
         number_of_pages = 0
         last_page_count = 0
@@ -68,9 +78,9 @@ class RepoStat
             open_issues_arr = make_request 'issues',{:per_page=>@page_size,:state=>'open'}
             last_response = @octokit_client.last_response
             # Fetching the last pages number from the last page url which is provided via github API pagination feature
-            number_of_pages = last_response.rels[:last].href.match(/&page=(\d+).*$/)[1]
+            number_of_pages = last_response.rels[:last] ? last_response.rels[:last].href.match(/&page=(\d+).*$/)[1] : 1
             if number_of_pages == 1 || open_issues_arr.count % @page_size != 0 || open_issues_arr.last.created_at <= 7.days.ago 
-                last_page_count = last_response.rels[:last].get.data.size unless number_of_pages == 1
+                last_page_count = (number_of_pages == 1)? open_issues_arr.count : last_response.rels[:last].get.data.size 
                 break
             end
             open_issues_arr += last_response.rels[:next].get.data
