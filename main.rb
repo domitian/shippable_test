@@ -89,7 +89,7 @@ class RepoStat
         rescue Octokit::NotFound 
             raise InternalError.new, "Repo not found"
         rescue Octokit::InvalidRepository
-            raise InternalError.new, "Invalid Repository Name"
+            raise InternalError.new, "Invalid Repository Name, Maybe you forgot to put http or https in the url"
         end
             
     end
