@@ -87,9 +87,9 @@ class RepoStat
         begin
             @octokit_client.send(request_type,@repo_url,options)
         rescue Octokit::NotFound 
-            raise InternalError.new, "Repo not found"
+            raise InternalError.new, "Repo not found, Maybe you forgot to put http or https in the url"
         rescue Octokit::InvalidRepository
-            raise InternalError.new, "Invalid Repository Name, Maybe you forgot to put http or https in the url"
+            raise InternalError.new, "Invalid Repository Name"
         end
             
     end
