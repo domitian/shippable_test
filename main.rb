@@ -1,14 +1,17 @@
 # LIBRARY FOR MAKING GITHUB API CALLS EASIER
 require 'octokit'
-# PRETTY PRINT OUTPUT IN TABLE
-require 'terminal-table'
+# Minimal web interface
+require 'sinatra'
 require 'uri'
 
-
-def take_input
-    puts "Please enter the github repo url"
-    gets.chomp
+# creating exception to be catched in heroku app
+class InternalError < StandardError
 end
+
+#def take_input
+#    puts "Please enter the github repo url"
+#    gets.chomp
+#end
 
 def parse_input_uri url
     begin
@@ -33,9 +36,9 @@ end
 
 # Class request maker and fetcher and storage in object
 class RepoStat
-    def initialize
+    def initialize input_url
         @octokit_client = Octokit::Client.new
-        @repo_url = parse_input_uri(take_input)
+        @repo_url = parse_input_uri(input_url)
         @total_open_issues = 0
         @issues_opened_in_last_24_hours = 0
         @issues_opened_between_7days_24hours = 0
@@ -43,25 +46,17 @@ class RepoStat
         @page_size = 100
     end
 
-    def store_results
+    def fetch_results
         open_issues,num_pages,last_page_count = fetch_issues_arr
         @total_open_issues = calc_total_open_issue_count num_pages,last_page_count
         issues_opened_in_last_7days = open_issues.select {|issue| issue.created_at >= 7.days.ago }.count
         @issues_opened_before_7days = @total_open_issues - issues_opened_in_last_7days 
         @issues_opened_in_last_24_hours = open_issues.select {|issue| issue.created_at >= 1.days.ago}.count
         @issues_opened_between_7days_24hours = issues_opened_in_last_7days -  @issues_opened_in_last_24_hours 
+        [@total_open_issues,@issues_opened_in_last_24_hours,@issues_opened_between_7days_24hours,@issues_opened_before_7days]
     end
 
 
-    def print_output
-        #puts "#{@total_open_issues} #{@issues_opened_in_last_24_hours} #{@issues_opened_between_7days_24hours} #{@issues_opened_before_7days}" 
-        rows = []
-        rows << ['Total number of open issues',@total_open_issues]
-        rows << ['Number of open issues that were opened in the last 24 hours',@issues_opened_in_last_24_hours ]
-        rows << ['Number of open issues that were opened more than 24 hours ago but less than 7 days ago',@issues_opened_between_7days_24hours] 
-        rows << ['Number of open issues that were opened more than 7 days ago',@issues_opened_before_7days ]
-        puts Terminal::Table.new :rows => rows
-    end
 
     private
 
@@ -92,16 +87,30 @@ class RepoStat
         begin
             @octokit_client.send(request_type,@repo_url,options)
         rescue Octokit::NotFound 
-            puts "Repo not found"
-            exit
+            raise InternalError.new, "Repo not found"
         rescue Octokit::InvalidRepository
-            puts "Invalid Repository Name"
-            exit
+            raise InternalError.new, "Invalid Repository Name"
         end
             
     end
 end
 #PROGRAM EXECUTION STARTS FROM HERE
-rep = RepoStat.new
-rep.store_results
-rep.print_output
+#rep = RepoStat.new
+#rep.store_results
+#rep.print_output
+get '/' do
+    begin
+        if params[:input_url]
+            rep = RepoStat.new(params[:input_url])
+            @output_arr = rep.fetch_results
+        end
+
+    rescue InternalError => exec
+        @error_msg = exec.message
+    rescue Faraday::ConnectionFailed => exec
+        @error_msg = "Internet Issue on our servers, please bear with us"
+    rescue Exception => exec
+        @error_msg = "#{exec.message}, please report this error to bobba.surendra@gmail.com"
+    end
+    erb :index
+end

@@ -1,0 +1,27 @@
+<% if @error_msg %>
+    <h4> An Error Occurred </h4>
+    <p> <%= @error_msg %>
+<% elsif @output_arr %>
+    <table border="1">
+        <tr>
+            <td>Total number of open issues</td>
+            <td> <%= @output_arr.shift %> </td>
+        </tr>
+        <tr>
+            <td> Number of open issues that were opened in the last 24 hours</td>
+            <td> <%= @output_arr.shift %></td>
+        </tr>
+        <tr>
+            <td> Number of open issues that were opened more than 24 hours ago but less than 7 days ago</td>
+            <td> <%= @output_arr.shift %></td>
+        </tr>
+        <tr>
+            <td>Number of open issues that were opened more than 7 days ago</td>
+            <td> <%= @output_arr.shift %></td>
+        </tr>
+    </table>
+<% end %>
+<form action='/' method="GET">
+    Input Github Url:  <input type="text" name="input_url" />
+    <input type="submit" name="submit" value="Submit" />
+</form>

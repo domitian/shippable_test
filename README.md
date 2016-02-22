@@ -1,27 +1,31 @@
 ## Prerequisites for installing app:
 1. Ruby version 2.2
 2. bundler gem
+3. Sinatra(A lightweight web app built using this framework)
 
 ## Run the App:
-Two ways to start the app
-1. ruby main.rb
-2. ./main.rb
+Ways to start the app.
+
+1. `ruby main.rb`
+2. Open your browser and listen at `localhost:4567`
 
 ## Solution:
-1. Input is taken via standard input.
+1. Input is taken via text field on the html page.
 2. Using github API V3.
 
 #### Assumptions:-
 1. Open issues means issues which are opened as well the open pull requests. This is because github API assumes open pull requests as issues as well.
+2. github repo url entered is random.
+
 #### What I did:-
 I am using a library name `octokit.rb` for making calls to the github api. 
 When the input url is given, an api request is made to github's `issues` api for listing issues with filters `:per_page=> 100,:state=> 'open'`.
-Since github API paginates by default, we get list of issues sorted by created_at date in desc order in page 1 and stored in `open_issues_arr`. The headers of this response also contains links for `last page`. So two conditions arise here.
-1. If the last page link is empty, then the page fetched is the final page.
-2. If last page link is not empty, we get the last page number using a regex.
+Since github API paginates by default, we get list of issues sorted by `created_at` date in desc order in page 1 and stored in `open_issues_arr`. The headers of this response also contains links for `last page`. So two conditions arise here.
+  1. If the last page link is empty, then the page fetched is the final page.
+  2. If last page link is not empty, we get the last page number using a regex.
 
 And we fetch the final page if first page is not final and get the count of issues in final page.
-So we calculate the total number of issues using this formuala below
+So we calculate the total number of issues using this formula below.
 ```ruby
 (number_of_pages-1)*page_size + final_page_issues_count
 ```
@@ -40,6 +44,7 @@ We store all this data and print it in a tabular format. For printing the output
 
 #### Assumption:-
  If request github repo is random, this could be the best solution:-
+
 #### What to do:-
 We can use a database to store the past request data for a specific github repo url along with the request time for that url.
 1. If the current request time of the url is less than 1 day for the request for url in database, We fetch first page and last page if there and see if total issue is changed and also check if any new requests were opened in the last 24 hours, if there were none, then we don't have to make any additional requests and show the past data. Ofcourse this is under the assumption that the closed issues can't be reopened.
@@ -47,6 +52,7 @@ We can use a database to store the past request data for a specific github repo 
 
 #### Assumption:-
  If request github repo is from fixed set of repos.
+
 #### What to do:-
  We can use database for this as well, but since it is for fixed set we first fetch the total issues and request time initially and store them in database.
  1. Then we use github's `event API for issues` and we periodically make requests to this API and make changes in database as necassary by the response.
