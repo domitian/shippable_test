@@ -18,6 +18,7 @@ Ways to start the app.
 2. github repo url entered is random.
 
 #### What I did:-
+Built a basic light weight webapp with `sinatra`. Applications code is in `main.rb` and view is `index.erb`
 I am using a library name `octokit.rb` for making calls to the github api. 
 When the input url is given, an api request is made to github's `issues` api for listing issues with filters `:per_page=> 100,:state=> 'open'`.
 Since github API paginates by default, we get list of issues sorted by `created_at` date in desc order in page 1 and stored in `open_issues_arr`. The headers of this response also contains links for `last page`. So two conditions arise here.
@@ -37,7 +38,7 @@ Now we have the issues in `open_issues_arr`, we use a filter to find the issues 
 We use both the results and subtract them to get the issues opened more than 24 hours but less than 7 days ago.
 For issues open before 7 days, we subtract issues opened in 7 days from total number of issues. 
 
-We store all this data and print it in a tabular format. For printing the output in table format 'terminal-table' library/gem is used.
+We store all this data and print it in a tabular format in the html page.
 
 
 ## Optimized Solution given more time:-
