@@ -68,17 +68,22 @@ class RepoStat
         open_issues_arr = []
         number_of_pages = 0
         last_page_count = 0
+        # First request for issues and the private method below will check for execeptions as well.
+        current_page_num = 1
+        open_issues_arr = make_request 'issues',{:per_page=>@page_size,:state=>'open',:page => current_page_num }
+        last_response = @octokit_client.last_response
+        # Fetching the last pages number from the last page url which is provided via github API pagination feature
+        puts last_response.rels[:last].href
+        number_of_pages = last_response.rels[:last] ? last_response.rels[:last].href.match(/page=(\d+).*$/)[1] : 1
+        # Fetching the pages till we encounter issue which is older than 7 days or all issues are fetched.
         loop do 
-            # First request for issues and the private method below will check for execeptions as well.
-            open_issues_arr = make_request 'issues',{:per_page=>@page_size,:state=>'open'}
-            last_response = @octokit_client.last_response
-            # Fetching the last pages number from the last page url which is provided via github API pagination feature
-            number_of_pages = last_response.rels[:last] ? last_response.rels[:last].href.match(/&page=(\d+).*$/)[1] : 1
+            current_page_num += 1
             if number_of_pages == 1 || open_issues_arr.count % @page_size != 0 || open_issues_arr.last.created_at <= 7.days.ago 
+                puts "request making here"
                 last_page_count = (number_of_pages == 1)? open_issues_arr.count : last_response.rels[:last].get.data.size 
                 break
             end
-            open_issues_arr += last_response.rels[:next].get.data
+            open_issues_arr += (make_request 'issues',{:per_page=>@page_size,:state=>'open',:page => current_page_num })
         end
         [open_issues_arr,number_of_pages.to_i,last_page_count.to_i]
     end
